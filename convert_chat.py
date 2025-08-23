@@ -379,11 +379,10 @@ def convert_conversation_to_html(input_file, output_file=None):
         }}
         
         .response-content {{
-            background-color: var(--response-content-bg);
+            background-color: var(--thinking-bg);
+            border-left: 4px solid var(--message-border);
             padding: 12px;
-            border: 1px solid var(--response-content-border);
             margin: 10px 0;
-            border-radius: 5px;
             font-size: 0.9rem;
         }}
         
