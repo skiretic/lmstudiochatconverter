@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 import os
+import re
 
 def convert_conversation_to_html(input_file, output_file=None):
     """
@@ -47,7 +48,7 @@ def convert_conversation_to_html(input_file, output_file=None):
             message_content = ""
             for part in content_parts:
                 if part.get('type') == 'text':
-                    message_content = part['text'].replace('\n', '<br>')
+                    message_content = part['text']
             
             # Add message bubble
             content_html += f"""
@@ -57,7 +58,7 @@ def convert_conversation_to_html(input_file, output_file=None):
                         <span class="message-role">{role.capitalize()}</span>
                         {f'<span class="message-timestamp">{timestamp}</span>' if timestamp else ''}
                     </div>
-                    <div>{message_content}</div>
+                    <div>{format_content(message_content)}</div>
             """
             
             # Include reasoning steps and details if present (for assistant messages)
@@ -94,6 +95,61 @@ def convert_conversation_to_html(input_file, output_file=None):
                             if 'totalTokensCount' in stats:
                                 stat_items.append(f"Total Tokens: {stats['totalTokensCount']}")
                             
+                            # Enhanced statistics - Add 1, 2, 3, 4, 6 and 7 metadata
+                            # 3. Model identifier and configuration details
+                            model_identifier = gen_info.get('indexedModelIdentifier', 'Unknown')
+                            if model_identifier != 'Unknown':
+                                # Extract just the model name for cleaner display
+                                model_name = model_identifier.split('/')[-1] if '/' in model_identifier else model_identifier
+                                stat_items.append(f"Model: {model_name}")
+                            
+                            # 6. Context length information (from load configuration)
+                            if 'loadModelConfig' in gen_info and gen_info['loadModelConfig']:
+                                load_config = gen_info['loadModelConfig'].get('fields', [])
+                                for field in load_config:
+                                    if field.get('key') == 'llm.load.contextLength':
+                                        context_length = field.get('value')
+                                        stat_items.append(f"Context Length: {context_length}")
+                            
+                            # 7. Quantization details (from load configuration)
+                            quantization_info = []
+                            if 'loadModelConfig' in gen_info and gen_info['loadModelConfig']:
+                                load_config = gen_info['loadModelConfig'].get('fields', [])
+                                for field in load_config:
+                                    if field.get('key') == 'llm.load.llama.vCacheQuantizationType':
+                                        v_quant = field.get('value', {}).get('value', 'Unknown')
+                                        quantization_info.append(f"V Cache Quant: {v_quant}")
+                                    elif field.get('key') == 'llm.load.llama.kCacheQuantizationType':
+                                        k_quant = field.get('value', {}).get('value', 'Unknown')
+                                        quantization_info.append(f"K Cache Quant: {k_quant}")
+                            
+                            if quantization_info:
+                                stat_items.extend(quantization_info)
+                            
+                            # 2. Memory/CPU thread information (from load configuration)  
+                            cpu_threads = None
+                            if 'loadModelConfig' in gen_info and gen_info['loadModelConfig']:
+                                load_config = gen_info['loadModelConfig'].get('fields', [])
+                                for field in load_config:
+                                    if field.get('key') == 'llm.load.llama.cpuThreadPoolSize':
+                                        cpu_threads = field.get('value')
+                                        stat_items.append(f"CPU Threads: {cpu_threads}")
+                            
+                            # 4. Token efficiency metrics (calculate from tokens)
+                            prompt_tokens = stats.get('promptTokensCount', 0)
+                            predicted_tokens = stats.get('predictedTokensCount', 0)
+                            total_tokens = stats.get('totalTokensCount', 0)
+                            
+                            if predicted_tokens > 0 and prompt_tokens > 0:
+                                # Tokens per prompt token ratio
+                                tokens_per_prompt = round(predicted_tokens / prompt_tokens, 2)
+                                stat_items.append(f"Tokens/Prompt Token Ratio: {tokens_per_prompt}")
+                                
+                                # Efficiency (predicted vs total) 
+                                if total_tokens > 0:
+                                    efficiency = round((predicted_tokens / total_tokens) * 100, 2)
+                                    stat_items.append(f"Efficiency: {efficiency}%")
+                            
                             for item in stat_items:
                                 stats_html += f'<div class="stat-item">{item}</div>'
                             
@@ -116,10 +172,11 @@ def convert_conversation_to_html(input_file, output_file=None):
                         for part in content:
                             if part.get('type') == 'text':
                                 if 'thinking' in str(step.get('style', {})).lower():
+                                    thinking_content = format_content(part['text'])
                                     content_html += f"""
                                     <div class="thinking-process">
                                         <strong>Thinking Process:</strong><br>
-                                        {part['text'].replace('\n', '<br>')}
+                                        {thinking_content}
                                     </div>
                                     """
                 
@@ -145,7 +202,7 @@ def convert_conversation_to_html(input_file, output_file=None):
                                     response_content += f"""
                                     <div class="response-content">
                                         <strong>Model Response:</strong><br>
-                                        {part['text'].replace('\n', '<br>')}
+                                        {format_content(part['text'])}
                                     </div>
                                     """
                 
@@ -172,53 +229,61 @@ def convert_conversation_to_html(input_file, output_file=None):
         :root {{
             --bg-color: white;
             --text-color: black;
-            --header-bg: black;
+            --header-bg: #333;
             --header-text: white;
-            --message-user-bg: black;
+            --message-user-bg: #444;
             --message-user-text: white;
-            --message-assistant-bg: white;
+            --message-assistant-bg: #f5f5f5;
             --message-assistant-text: black;
-            --message-border: black;
-            --system-prompt-bg: #f0f0f0;
-            --system-prompt-border: black;
-            --thinking-bg: #f0f0f0;
-            --thinking-border: black;
-            --stats-bg: #f0f0f0;
-            --stats-border: black;
+            --message-border: #ddd;
+            --system-prompt-bg: #e8e8e8;
+            --system-prompt-border: #ccc;
+            --thinking-bg: #fff8e1;
+            --thinking-border: #ffd54f;
+            --stats-bg: #e0e0e0;
+            --stats-border: #bdbdbd;
             --tool-calls-bg: #f0f0f0;
-            --tool-calls-border: black;
-            --response-content-bg: #e8f4f8;
-            --response-content-border: #b3e0ff;
-            --footer-bg: #f0f0f0;
-            --footer-border: black;
-            --toggle-bg: #f0f0f0;
+            --tool-calls-border: #9e9e9e;
+            --response-content-bg: #f0f0f0;
+            --response-content-border: #9e9e9e;
+            --footer-bg: #f5f5f5;
+            --footer-border: #ddd;
+            --toggle-bg: #eee;
             --toggle-text: black;
+            --code-bg: #f8f8f8;
+            --code-border: #ccc;
+            --blockquote-bg: #f0f0f0;
+            --blockquote-border: #9e9e9e;
         }}
 
         .dark-mode {{
             --bg-color: #1a1a1a;
-            --text-color: #e0e0e0;
-            --header-bg: #000000;
-            --header-text: #ffffff;
-            --message-user-bg: #000000;
-            --message-user-text: #ffffff;
+            --text-color: #f0f0f0;
+            --header-bg: #333;
+            --header-text: white;
+            --message-user-bg: #444;
+            --message-user-text: white;
             --message-assistant-bg: #2d2d2d;
-            --message-assistant-text: #e0e0e0;
-            --message-border: #404040;
-            --system-prompt-bg: #2d2d2d;
-            --system-prompt-border: #404040;
-            --thinking-bg: #252525;
-            --thinking-border: #404040;
-            --stats-bg: #252525;
-            --stats-border: #404040;
-            --tool-calls-bg: #252525;
-            --tool-calls-border: #404040;
-            --response-content-bg: #1e3a4d;
-            --response-content-border: #1c3d5a;
-            --footer-bg: #252525;
-            --footer-border: #404040;
-            --toggle-bg: #333333;
-            --toggle-text: #ffffff;
+            --message-assistant-text: #f0f0f0;
+            --message-border: #555;
+            --system-prompt-bg: #3a3a3a;
+            --system-prompt-border: #444;
+            --thinking-bg: #3e3d39;
+            --thinking-border: #6b5b3d;
+            --stats-bg: #2a2a2a;
+            --stats-border: #555;
+            --tool-calls-bg: #3a3a3a;
+            --tool-calls-border: #555;
+            --response-content-bg: #3a3a3a;
+            --response-content-border: #555;
+            --footer-bg: #2d2d2d;
+            --footer-border: #444;
+            --toggle-bg: #333;
+            --toggle-text: white;
+            --code-bg: #2d2d2d;
+            --code-border: #555;
+            --blockquote-bg: #2d2d2d;
+            --blockquote-border: #555;
         }}
 
         * {{
@@ -295,6 +360,8 @@ def convert_conversation_to_html(input_file, output_file=None):
             position: relative;
             line-height: 1.5;
             word-wrap: break-word;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }}
         
         .user .message-bubble {{
@@ -325,14 +392,16 @@ def convert_conversation_to_html(input_file, output_file=None):
         
         .message-timestamp {{
             font-size: 0.7rem;
+            opacity: 0.8;
         }}
         
         .thinking-process {{
             background-color: var(--thinking-bg);
-            border-left: 4px solid var(--message-border);
-            padding: 12px;
+            border-left: 4px solid var(--thinking-border);
+            padding: 15px;
             margin: 10px 0;
             font-size: 0.9rem;
+            border-radius: 8px;
         }}
         
         .thinking-duration {{
@@ -347,43 +416,50 @@ def convert_conversation_to_html(input_file, output_file=None):
         
         .stats-section {{
             background-color: var(--stats-bg);
-            padding: 10px;
+            padding: 15px;
             border: 1px solid var(--stats-border);
             margin: 10px 0;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
+            border-radius: 8px;
         }}
         
         .stats-title {{
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            color: inherit;
         }}
         
         .stat-item {{
-            margin: 3px 0;
+            margin: 5px 0;
+            padding: 3px 0;
         }}
         
         .tool-calls {{
             background-color: var(--tool-calls-bg);
-            padding: 10px;
+            padding: 15px;
             border: 1px solid var(--tool-calls-border);
             margin: 10px 0;
             font-size: 0.9rem;
+            border-radius: 8px;
         }}
         
         .tool-call-item {{
-            margin: 5px 0;
+            margin: 8px 0;
+            padding: 5px 0;
         }}
         
         .tool-name {{
             font-weight: bold;
+            color: inherit;
         }}
         
         .response-content {{
-            background-color: var(--thinking-bg);
-            border-left: 4px solid var(--message-border);
-            padding: 12px;
+            background-color: var(--response-content-bg);
+            border-left: 4px solid var(--response-content-border);
+            padding: 15px;
             margin: 10px 0;
             font-size: 0.9rem;
+            border-radius: 8px;
         }}
         
         .footer {{
@@ -402,6 +478,7 @@ def convert_conversation_to_html(input_file, output_file=None):
             border: 1px solid var(--system-prompt-border);
             margin: 15px 0;
             font-size: 0.9rem;
+            border-radius: 8px;
         }}
         
         .system-prompt-title {{
@@ -432,6 +509,89 @@ def convert_conversation_to_html(input_file, output_file=None):
         
         .theme-toggle-icon {{
             font-size: 1.2rem;
+        }}
+        
+        /* Enhanced Markdown styling */
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3,
+        .markdown-content h4,
+        .markdown-content h5,
+        .markdown-content h6 {{
+            margin-top: 1.5em;
+            margin-bottom: 0.8em;
+            font-weight: bold;
+        }}
+        
+        .markdown-content h1 {{
+            font-size: 1.8rem;
+        }}
+        
+        .markdown-content h2 {{
+            font-size: 1.5rem;
+        }}
+        
+        .markdown-content h3 {{
+            font-size: 1.2rem;
+        }}
+        
+        .markdown-content p {{
+            margin-bottom: 0.8em;
+        }}
+        
+        .markdown-content ul,
+        .markdown-content ol {{
+            margin: 0.8em 0;
+            padding-left: 1.5em;
+        }}
+        
+        .markdown-content li {{
+            margin-bottom: 0.4em;
+        }}
+        
+        .markdown-content pre {{
+            background-color: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: 6px;
+            padding: 12px;
+            overflow-x: auto;
+            margin: 1em 0;
+            font-size: 0.9rem;
+        }}
+        
+        .markdown-content code {{
+            background-color: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }}
+        
+        .markdown-content blockquote {{
+            background-color: var(--blockquote-bg);
+            border-left: 4px solid var(--blockquote-border);
+            padding: 12px 15px;
+            margin: 1em 0;
+            font-style: italic;
+        }}
+        
+        .markdown-content table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1em 0;
+        }}
+        
+        .markdown-content th,
+        .markdown-content td {{
+            border: 1px solid var(--message-border);
+            padding: 8px 12px;
+            text-align: left;
+        }}
+        
+        .markdown-content th {{
+            background-color: var(--stats-bg);
+            font-weight: bold;
         }}
     </style>
 </head>
@@ -502,6 +662,71 @@ def convert_conversation_to_html(input_file, output_file=None):
         f.write(html_content)
     
     print(f"HTML chat interface saved to {output_file}")
+
+def format_content(content):
+    """Format content with enhanced Markdown support."""
+    if not content:
+        return ""
+    
+    # Convert markdown-style elements
+    formatted = content
+    
+    # Handle code blocks (multi-line)
+    formatted = re.sub(r'```([\s\S]*?)```', r'<pre><code>\1</code></pre>', formatted)
+    
+    # Handle inline code 
+    formatted = re.sub(r'`([^`]+)`', r'<code>\1</code>', formatted)
+    
+    # Handle headers (# Header)
+    formatted = re.sub(r'^#{1,6}\s+(.*)$', r'<h3>\1</h3>', formatted, flags=re.MULTILINE)
+    
+    # Handle bold text (**bold** or __bold__)
+    formatted = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', formatted)
+    formatted = re.sub(r'__(.*?)__', r'<strong>\1</strong>', formatted)
+    
+    # Handle italic text (*italic* or _italic_)
+    formatted = re.sub(r'\*(.*?)\*', r'<em>\1</em>', formatted)
+    formatted = re.sub(r'_(.*?)_', r'<em>\1</em>', formatted)
+    
+    # Handle strikethrough
+    formatted = re.sub(r'~~(.*?)~~', r'<del>\1</del>', formatted)
+    
+    # Handle bullet lists (starting with - or *)
+    lines = formatted.split('\n')
+    in_list = False
+    for i, line in enumerate(lines):
+        if line.strip().startswith(('- ', '* ')):
+            if not in_list:
+                lines[i] = '<ul><li>' + line[2:].strip() + '</li>'
+                in_list = True
+            else:
+                lines[i] = '<li>' + line[2:].strip() + '</li>'
+        elif in_list and line.strip():
+            # Check if this is a new list item or continuation of previous 
+            if not line.startswith('- ') and not line.startswith('* '):
+                lines[i-1] += '</ul><p>' + line
+                in_list = False
+            else:
+                lines[i] = '<li>' + line[2:].strip() + '</li>'
+        elif in_list:
+            # End of list if we encounter a blank line or non-list item
+            if not line.strip():
+                lines[i-1] += '</ul>'
+                in_list = False
+    
+    formatted = '\n'.join(lines)
+    
+    # Handle blockquotes (lines starting with >)
+    formatted = re.sub(r'^>\s+(.*)$', r'<blockquote>\1</blockquote>', formatted, flags=re.MULTILINE)
+    
+    # Convert new lines to <br> tags
+    formatted = formatted.replace('\n\n', '</p><p>').replace('\n', '<br>')
+    
+    # Add paragraph tags around content
+    if not formatted.startswith('<'):
+        formatted = f'<p>{formatted}</p>'
+    
+    return formatted
 
 # Usage
 if __name__ == "__main__":
