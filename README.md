@@ -1,6 +1,6 @@
 # LM Studio Chat Converter
 
-A Python script that converts LM Studio conversation JSON files into an HTML file showing a chat like interface.
+A Python script that converts LM Studio conversation JSON files into an HTML file showing a chat like interface. Just about everything you read here, along with the script is developed with AI just with prompts, I wrote none of this code.
 
 ## Description
 
