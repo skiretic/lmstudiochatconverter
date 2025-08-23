@@ -20,9 +20,6 @@ This script transforms conversation data stored in JSON format (from LM Studio) 
 python3 convert_chat.py <input.json> <output.html>
 
 ## Input Format
-The script expects a JSON file with the following structure:
-
-## Input Format
 
 The script expects a JSON file with the following structure:
 - `name`: Conversation name
