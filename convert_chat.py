@@ -161,7 +161,7 @@ def convert_conversation_to_html(input_file, output_file=None):
             
             content_html += "</div></div>"
     
-    # Create complete HTML document
+    # Create complete HTML document with light/dark mode toggle
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -169,6 +169,58 @@ def convert_conversation_to_html(input_file, output_file=None):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conversation Chat Interface</title>
     <style>
+        :root {{
+            --bg-color: white;
+            --text-color: black;
+            --header-bg: black;
+            --header-text: white;
+            --message-user-bg: black;
+            --message-user-text: white;
+            --message-assistant-bg: white;
+            --message-assistant-text: black;
+            --message-border: black;
+            --system-prompt-bg: #f0f0f0;
+            --system-prompt-border: black;
+            --thinking-bg: #f0f0f0;
+            --thinking-border: black;
+            --stats-bg: #f0f0f0;
+            --stats-border: black;
+            --tool-calls-bg: #f0f0f0;
+            --tool-calls-border: black;
+            --response-content-bg: #e8f4f8;
+            --response-content-border: #b3e0ff;
+            --footer-bg: #f0f0f0;
+            --footer-border: black;
+            --toggle-bg: #f0f0f0;
+            --toggle-text: black;
+        }}
+
+        .dark-mode {{
+            --bg-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --header-bg: #000000;
+            --header-text: #ffffff;
+            --message-user-bg: #000000;
+            --message-user-text: #ffffff;
+            --message-assistant-bg: #2d2d2d;
+            --message-assistant-text: #e0e0e0;
+            --message-border: #404040;
+            --system-prompt-bg: #2d2d2d;
+            --system-prompt-border: #404040;
+            --thinking-bg: #252525;
+            --thinking-border: #404040;
+            --stats-bg: #252525;
+            --stats-border: #404040;
+            --tool-calls-bg: #252525;
+            --tool-calls-border: #404040;
+            --response-content-bg: #1e3a4d;
+            --response-content-border: #1c3d5a;
+            --footer-bg: #252525;
+            --footer-border: #404040;
+            --toggle-bg: #333333;
+            --toggle-text: #ffffff;
+        }}
+
         * {{
             margin: 0;
             padding: 0;
@@ -177,8 +229,8 @@ def convert_conversation_to_html(input_file, output_file=None):
         }}
         
         body {{
-            background-color: white;
-            color: black;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             min-height: 100vh;
             padding: 0;
             margin: 0;
@@ -188,19 +240,20 @@ def convert_conversation_to_html(input_file, output_file=None):
         .container {{
             width: 100vw;
             height: 100vh;
-            background: white;
+            background: var(--bg-color);
             border: none;
             box-shadow: none;
             overflow: auto;
         }}
         
         .header {{
-            background-color: black;
-            color: white;
+            background-color: var(--header-bg);
+            color: var(--header-text);
             padding: 20px;
             text-align: center;
-            border-bottom: 1px solid black;
+            border-bottom: 1px solid var(--message-border);
             width: 100%;
+            position: relative;
         }}
         
         .header h1 {{
@@ -238,22 +291,22 @@ def convert_conversation_to_html(input_file, output_file=None):
         .message-bubble {{
             max-width: 80%;
             padding: 15px;
-            border: 1px solid black;
+            border: 1px solid var(--message-border);
             position: relative;
             line-height: 1.5;
             word-wrap: break-word;
         }}
         
         .user .message-bubble {{
-            background-color: black;
-            color: white;
+            background-color: var(--message-user-bg);
+            color: var(--message-user-text);
             border-bottom-right-radius: 5px;
         }}
         
         .assistant .message-bubble {{
-            background-color: white;
-            color: black;
-            border: 1px solid black;
+            background-color: var(--message-assistant-bg);
+            color: var(--message-assistant-text);
+            border: 1px solid var(--message-border);
             border-bottom-left-radius: 5px;
         }}
         
@@ -275,16 +328,16 @@ def convert_conversation_to_html(input_file, output_file=None):
         }}
         
         .thinking-process {{
-            background-color: #f0f0f0;
-            border-left: 4px solid black;
+            background-color: var(--thinking-bg);
+            border-left: 4px solid var(--message-border);
             padding: 12px;
             margin: 10px 0;
             font-size: 0.9rem;
         }}
         
         .thinking-duration {{
-            background-color: #e0e0e0;
-            color: black;
+            background-color: var(--toggle-bg);
+            color: var(--toggle-text);
             padding: 5px 10px;
             border-radius: 12px;
             font-size: 0.8rem;
@@ -293,9 +346,9 @@ def convert_conversation_to_html(input_file, output_file=None):
         }}
         
         .stats-section {{
-            background-color: #f0f0f0;
+            background-color: var(--stats-bg);
             padding: 10px;
-            border: 1px solid black;
+            border: 1px solid var(--stats-border);
             margin: 10px 0;
             font-size: 0.8rem;
         }}
@@ -310,9 +363,9 @@ def convert_conversation_to_html(input_file, output_file=None):
         }}
         
         .tool-calls {{
-            background-color: #f0f0f0;
+            background-color: var(--tool-calls-bg);
             padding: 10px;
-            border: 1px solid black;
+            border: 1px solid var(--tool-calls-border);
             margin: 10px 0;
             font-size: 0.9rem;
         }}
@@ -326,9 +379,9 @@ def convert_conversation_to_html(input_file, output_file=None):
         }}
         
         .response-content {{
-            background-color: #e8f4f8;
+            background-color: var(--response-content-bg);
             padding: 12px;
-            border: 1px solid #b3e0ff;
+            border: 1px solid var(--response-content-border);
             margin: 10px 0;
             border-radius: 5px;
             font-size: 0.9rem;
@@ -337,17 +390,17 @@ def convert_conversation_to_html(input_file, output_file=None):
         .footer {{
             text-align: center;
             padding: 15px;
-            background: #f0f0f0;
-            border-top: 1px solid black;
+            background: var(--footer-bg);
+            border-top: 1px solid var(--footer-border);
             font-size: 0.8rem;
             width: 100%;
             position: relative;
         }}
         
         .system-prompt {{
-            background-color: #f0f0f0;
+            background-color: var(--system-prompt-bg);
             padding: 15px;
-            border: 1px solid black;
+            border: 1px solid var(--system-prompt-border);
             margin: 15px 0;
             font-size: 0.9rem;
         }}
@@ -355,6 +408,31 @@ def convert_conversation_to_html(input_file, output_file=None):
         .system-prompt-title {{
             font-weight: bold;
             margin-bottom: 8px;
+        }}
+        
+        .theme-toggle {{
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: var(--toggle-bg);
+            color: var(--toggle-text);
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        
+        .theme-toggle:hover {{
+            background-color: var(--message-border);
+        }}
+        
+        .theme-toggle-icon {{
+            font-size: 1.2rem;
         }}
     </style>
 </head>
@@ -367,6 +445,10 @@ def convert_conversation_to_html(input_file, output_file=None):
                 <span>Created: {datetime.fromtimestamp(data['createdAt']/1000).strftime('%Y-%m-%d %H:%M:%S') if data.get('createdAt') else 'Unknown'}</span>
                 <span>Total Tokens: {data.get('tokenCount', 0)}</span>
             </div>
+            <button class="theme-toggle" id="themeToggle">
+                <span class="theme-toggle-icon" id="themeIcon">🌙</span>
+                <span>Toggle Theme</span>
+            </button>
         </div>
         
         <div class="chat-container" id="chatContainer">
@@ -377,6 +459,42 @@ def convert_conversation_to_html(input_file, output_file=None):
             <p>Generated by LM Studio Chat Parser</p>
         </div>
     </div>
+
+    <script>
+        // Check for saved theme preference or respect system preference
+        function checkThemePreference() {{
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+            
+            if (savedTheme) {{
+                document.body.classList.toggle('dark-mode', savedTheme === 'dark');
+                updateThemeIcon(savedTheme === 'dark');
+            }} else if (prefersDarkScheme.matches) {{
+                document.body.classList.add('dark-mode');
+                updateThemeIcon(true);
+            }}
+        }}
+        
+        // Update theme icon based on current mode
+        function updateThemeIcon(isDarkMode) {{
+            const icon = document.getElementById('themeIcon');
+            icon.textContent = isDarkMode ? '☀️' : '🌙';
+        }}
+        
+        // Toggle theme
+        function toggleTheme() {{
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+            updateThemeIcon(isDarkMode);
+        }}
+        
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', function() {{
+            checkThemePreference();
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+        }});
+    </script>
 </body>
 </html>"""
     
@@ -397,4 +515,3 @@ if __name__ == "__main__":
     output_file = sys.argv[2] if len(sys.argv) > 2 else None
     
     convert_conversation_to_html(input_file, output_file)
-
