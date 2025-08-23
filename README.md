@@ -22,29 +22,33 @@ python3 convert_chat.py <input.json> <output.html>
 ## Input Format
 The script expects a JSON file with the following structure:
 
-name: Conversation name
-createdAt: Timestamp of conversation creation
-tokenCount: Total tokens in conversation
-systemPrompt: System prompt used
-messages: Array of message objects with:
-versions: Message versions with content, timestamps, and metadata
-role: Either “user” or “assistant”
-content: Text content of the message
-For assistant messages: Additional fields like steps, genInfo, tool_calls
-Output
+## Input Format
+
+The script expects a JSON file with the following structure:
+- `name`: Conversation name
+- `createdAt`: Timestamp of conversation creation
+- `tokenCount`: Total tokens in conversation
+- `systemPrompt`: System prompt used
+- `messages`: Array of message objects with:
+  - `versions`: Message versions with content, timestamps, and metadata
+  - `role`: Either "user" or "assistant"
+  - `content`: Text content of the message
+  - For assistant messages: Additional fields like `steps`, `genInfo`, `tool_calls`
+
+## Output
+
 The script generates a complete HTML file with:
-
-Conversation header showing name, creation date, and token count
-Color-coded user/assistant messages
-Detailed thinking process sections
-Model generation statistics
-Tool call information
-Timestamps for all messages
-Responsive layout that works on desktop and mobile
-
+- Conversation header showing name, creation date, and token count
+- Color-coded user/assistant messages
+- Detailed thinking process sections
+- Model generation statistics
+- Tool call information
+- Timestamps for all messages
+- Responsive layout that works on desktop and mobile
 
 ## Requirements
-Python 3.x
-JSON module (built-in)
-datetime module (built-in)
-os module (built-in)
+
+- Python 3.x
+- JSON module (built-in)
+- datetime module (built-in)
+- os module (built-in)
