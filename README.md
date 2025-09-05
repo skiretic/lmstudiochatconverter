@@ -49,3 +49,4 @@ The script generates a complete HTML file with:
 - JSON module (built-in)
 - datetime module (built-in)
 - os module (built-in)
+- re module (built-in)
